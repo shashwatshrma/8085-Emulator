@@ -21,13 +21,15 @@ string parseCommand(string input);
 //used when executing the 8085 program
 void updateProgramCounter(map<int, string>::iterator &PC, bool &jumped)
 {
-    if(jumped==true)
+    if(jumped==true) //if a branching statement was executed, no need to update the Program Counter
     {
         jumped=false;
         return;
     }
+
     map<string, int> commands= {
-        {"MVI", 2}, {"ADI", 2}, {"SUI", 2}, {"LXI", 3}, {"LDA", 3},
+        {"MVI", 2}, {"ADI", 2}, {"SUI", 2}, {"LXI", 3}, {"JMP", 3},
+        {"JC", 3}, {"JNC", 3}, {"JZ", 3}, {"JNZ", 3}, {"LDA", 3},
         {"STA", 3}, {"LHLD", 3}, {"SHLD", 3}, {"SET", 4}
     };
     auto search = commands.find(parseCommand(PC->second));
@@ -53,6 +55,7 @@ void updateProgramCounter(map<int, string> &memory, int &PC, string &input)
     {
         for(int i=0; i<search->second-1; i++)
         {
+            //space is inserted as dummy input in order to mark the memory location as used
             memory.insert({PC, " "});
             PC++;
         }
@@ -119,19 +122,21 @@ void help()
 }
 
 //fetches instructions and passes it to execute()
-//also checks if debugging is enabled and debus the program
+//also checks if debugging is enabled and debugs the program
 void fetch(map<int, string> &memory, map<string, register_8bit> &registers, int startAddress, bool debug)
 {
-    string debugOption;
-    char switchOption='\0';
+    bool jumped=false;
+    map<int, string>::iterator PC=memory.find(startAddress);
+
+    //Debugger
     int lineNumber;
     set<int> breakpoints;
-    string toPrint;
     int address;
-    map<int, string>::iterator PC=memory.find(startAddress);
+    string debugOption;
+    char switchOption='\0';
+    string toPrint;
     if(debug==true)
         cout<<"Debugging"<<endl;
-    bool jumped=false;
     while(debug==true)
     {
         cout<<"-> "<<PC->second<<'\n';
@@ -183,6 +188,8 @@ void fetch(map<int, string> &memory, map<string, register_8bit> &registers, int 
             cout<<"Invalid debugger command (suggested: use help)"<<'\n';
         }
     }
+
+    //executes the rest of the program in case debugger is exited before the end of program
     while(1)
     {
         if(PC->second == "HLT")
@@ -207,22 +214,22 @@ void execute(map<int, string> &memory, map<string, register_8bit> &registers, st
         {"SET", 40},
     };
     map<string, string> registerPairs= {{"A","F"}, {"B","C"}, {"D","E"}, {"H","L"}};
-    stringstream sstr(command);
+    stringstream sstr(command); //used to seperate instructuion and data
     string destinationRegister, sourceRegister;
     int immediateData, immediateAddress;
     string instruction;
     sstr>>instruction;
-    char ch;
+    char temp; //used to store names of registers and dummy input
     switch(opcode[instruction])
     {
     case 1:
     {
-        sstr>>ch;
-        string chartostring1(1,ch);
+        sstr>>temp;
+        string chartostring1(1,temp);
         destinationRegister=chartostring1;
-        sstr>>ch;
-        sstr>>ch;
-        string chartostring2(1,ch);
+        sstr>>temp;
+        sstr>>temp;
+        string chartostring2(1,temp);
         sourceRegister=chartostring2;
         MOV(registers[destinationRegister], registers[sourceRegister]);
         break;
@@ -328,12 +335,13 @@ void execute(map<int, string> &memory, map<string, register_8bit> &registers, st
         jumped=true;
         break;
     case 40:
-        sstr>>hex>>immediateAddress>>ch>>immediateData;
+        sstr>>hex>>immediateAddress>>temp>>immediateData;
         SET(immediateAddress, immediateData, memory);
         break;
     }
 }
 
+//moves the block of code to a new memory location and checks for overwriting again
 void moveCode(map<int, string> &memory, map<int, string>::iterator it, int newLocation)
 {
     int temp=it->first-1, newerLocation;
@@ -422,6 +430,7 @@ void inputFromFile(map<int, string> &memory, fstream &file)
 //overloaded function that displays the value of all registers
 void display(map<string, register_8bit> registers)
 {
+    //print registers except flag register
     cout<<"Registers:"<<'\n';
     for(auto it:registers)
     {
@@ -429,6 +438,8 @@ void display(map<string, register_8bit> registers)
             continue;
         cout<< it.first << ": " << hex << (it.second.val & 0xff) << '\n';
     }
+
+    //using bitset to extract individual flags from the flag register
     bitset<8> conditionFlags(registers.find("F")->second.val);
     cout<<'\n'<<"Flags:"<<'\n';
     cout<<"S:  "<<conditionFlags[7] <<'\n';
@@ -450,6 +461,9 @@ void display(map<int, string> &memory)
 int main(int argc, char **argv)
 {
     map<int, string> memory;
+    register_8bit A={0}, F={0}, B={0}, C={0}, D={0}, E={0}, H={0}, L={0};
+    map<string, register_8bit> registers={{"A",A},{"F",F},{"B",B},{"C",C},{"D",D},{"E",E},{"H",H},{"L",L}};
+
     bool debug=false, fileProvided=false;
     for(int i=1; i<argc; i++)
     {
@@ -464,43 +478,46 @@ int main(int argc, char **argv)
             fileProvided=true;
         }
     }
-    register_8bit A={0}, F={0}, B={0}, C={0}, D={0}, E={0}, H={0}, L={0};
-    map<string, register_8bit> registers={{"A",A},{"F",F},{"B",B},{"C",C},{"D",D},{"E",E},{"H",H},{"L",L}};
-    string debugOption;
+
     if(fileProvided==false)
     {
         cout<<"No input file detected, please enter an 8085 program"<<'\n'<<'\n';
         input(memory);
+        cin.clear();
     }
-    char ch;
-    string reg, sdata;
-    int address, data;
-    char choice;
-    cin.clear();
-    bool executed=false;
-    while(executed==false)
+
+    char ch; //stores the . after G command
+    string reg, sdata; //stores register's name and string data
+    int address, data; //stores address used with M or G commmand
+    char choice; //stores which command is used
+    bool exit=false; //simulation stops when exit is set to true
+
+    while(exit==false)
     {
         cin>>choice;
         switch(choice)
         {
-        case 'A':
+        case 'A': //updates the program
             input(memory);
             cin.clear();
             break;
-        case 'R':
+
+        case 'R': //updates the value of the specified register
             cin>>reg;
             cout<<reg<<": "<<registers[reg].val<<" - ";
             cin>>data;
             registers[reg].val=data;
             break;
-        case 'M':
+
+        case 'M': //updates the value at the specified memory location
             cin>>hex>>address;
             cout<<hex<<address<<": "<<memory[address]<<" - ";
             cin.ignore(10, '\n');
             getline(cin, sdata);
             memory[address]=sdata;
             break;
-        case 'G':
+
+        case 'G': //runs the program starting at the specified address
             cin>>hex>>address;
             cin>>ch;
             if(validateMemory(memory) == false)
@@ -508,7 +525,6 @@ int main(int argc, char **argv)
             if(ch == '.')
             {
                 fetch(memory, registers, address, debug);
-                executed=true;
                 cout<<'\n';
                 display(registers);
                 cout<<'\n';
@@ -517,7 +533,12 @@ int main(int argc, char **argv)
             else
                 cout<<"ERROR"<<'\n';
             break;
-        default:
+
+        case 'E': //exits simulation
+            exit=true;
+            break;
+
+        default: //prints ERROR in case invalid command is entered
             cout<<"ERROR"<<'\n';
         }
     }

@@ -33,10 +33,10 @@ bool validateData(string &data)
 
 bool validateCommand(string &command)
 {
-    regex oneAddressCommands("(LHLD|SHLD|LDA|STA|JZ|JNZ|JC|JNC|JMP) [0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]");
+    regex addressCommands("(LHLD|SHLD|LDA|STA|JZ|JNZ|JC|JNC|JMP) [0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]");
     regex oneRegisterCommands("(ADD|SUB|DCR|INR) [A-E|H|L]");
     regex higherRegisterCommands("(INX|DCX|DAD) [A-E|H|L]");
-    regex $8bitdataCommands("(ADI|SUI) [0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]");
+    regex $8bitdataCommands("(ADI|SUI) [0-9a-fA-F][0-9a-fA-F]");
     regex MOVCommand("MOV [A-E|H|L],[A-E|H|L]");
     regex SETCommand("SET [0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F],[0-9a-fA-F][0-9a-fA-F]");
     regex implicit("CMA|HLT|XCHG");
@@ -44,7 +44,8 @@ bool validateCommand(string &command)
     regex LXICommand("LXI [B|D|H] [0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]");
     regex STAXCommand("STAX [B|D|H]");
 
-    return regex_match(command, oneAddressCommands) || regex_match(command, oneRegisterCommands) || regex_match(command, higherRegisterCommands)
+    //returns true if the input command matches any one of the regular expressions
+    return regex_match(command, addressCommands) || regex_match(command, oneRegisterCommands) || regex_match(command, higherRegisterCommands)
         || regex_match(command, $8bitdataCommands) || regex_match(command, MOVCommand) || regex_match(command, SETCommand)
         || regex_match(command, implicit) || regex_match(command, MVICommand) || regex_match(command, LXICommand)
         || regex_match(command, STAXCommand);
