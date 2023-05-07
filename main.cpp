@@ -3,6 +3,7 @@
 #include "logical.h"
 #include "arithmetic.h"
 #include "branching.h"
+#include "validate.h"
 
 #include <iostream>
 #include <string.h>
@@ -333,20 +334,15 @@ void execute(map<int, string> &memory, map<string, register_8bit> &registers, st
     }
 }
 
-//parses command from the input taken from the user
-string parseCommand(string input)
-{
-    int i;
-    for(i=0; input[i]!=0; i++)
-        if(input[i]==' ')
-            break;
-    return input.substr(0, i);
-}
-
 //takes input from the user in case no input file is provided
-void input(map<int, string> &memory, int PC)
+void input(map<int, string> &memory)
 {
+    int PC;
     string input;
+    cout<<"Starting address: ";
+    cin>>hex>>PC;
+    cout<<'\n';
+    getchar();
     while(1)
     {
         map<string, int> commands= {{"MVI", 2}, {"ADI", 2}, {"SUI", 2}, {"LXI", 3}, {"JMP", 3}, {"JC", 3},
@@ -423,19 +419,14 @@ int main(int argc, char **argv)
     }
     register_8bit A={0}, F={0}, B={0}, C={0}, D={0}, E={0}, H={0}, L={0};
     map<string, register_8bit> registers={{"A",A},{"F",F},{"B",B},{"C",C},{"D",D},{"E",E},{"H",H},{"L",L}};
-    int startAddress;
     string debugOption;
     if(fileProvided==false)
     {
         cout<<"No input file detected, please enter an 8085 program"<<'\n'<<'\n';
-        cout<<"Starting address: ";
-        cin>>hex>>startAddress;
-        cout<<'\n';
-        getchar();
-        input(memory, startAddress);
+        input(memory);
     }
     char ch;
-    string reg;
+    string reg, sdata;
     int address, data;
     char choice;
     cin.clear();
@@ -454,15 +445,18 @@ int main(int argc, char **argv)
         case 'M':
             cin>>hex>>address;
             cout<<hex<<address<<": "<<memory[address]<<" - ";
-            cin>>data;
-            memory[address]=itos(data);
+            cin.ignore(10, '\n');
+            getline(cin, sdata);
+            memory[address]=sdata;
             break;
         case 'G':
-            cin>>hex>>startAddress;
+            cin>>hex>>address;
             cin>>ch;
+            if(validateMemory(memory) == false)
+                break;
             if(ch == '.')
             {
-                fetch(memory, registers, startAddress, debug);
+                fetch(memory, registers, address, debug);
                 executed=true;
                 cout<<'\n';
                 display(registers);

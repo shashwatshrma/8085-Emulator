@@ -18,5 +18,6 @@ void checkparity(register_8bit &F, int val);
 void setsign(register_8bit &F);
 void resetsign(register_8bit &F);
 string itos(int num);
+string parseCommand(string input);
 
 #endif // UTILITIES

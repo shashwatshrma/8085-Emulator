@@ -59,9 +59,20 @@ void resetsign(register_8bit &F)
     F.val=F.val & 0b01111111;
 }
 
+//converts number to hex string
 string itos(int num)
 {
     stringstream tempStream;
     tempStream<<hex<<num;
     return tempStream.str();
+}
+
+//parses command from the input
+string parseCommand(string input)
+{
+    int i;
+    for(i=0; input[i]!=0; i++)
+        if(input[i]==' ')
+            break;
+    return input.substr(0, i);
 }
