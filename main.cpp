@@ -334,20 +334,67 @@ void execute(map<int, string> &memory, map<string, register_8bit> &registers, st
     }
 }
 
+void moveCode(map<int, string> &memory, map<int, string>::iterator it, int newLocation)
+{
+    int temp=it->first-1, newerLocation;
+    string choice;
+    map<int, string>::iterator start=it;
+    while(it->first==temp+1)
+    {
+        if(memory.find(newLocation)!=memory.end())
+        {
+            map<int, string>::iterator it=memory.find(newLocation);
+            cout<<"Memory already in use\n"
+                "Do you want to overwrite it or move the block of code present to another address?: ";
+            cin>>choice;
+            getchar();
+            switch(choice[0])
+            {
+            case 'm':
+                cout<<"New location for the code block: ";
+                cin>>hex>>newerLocation;
+                getchar();
+                moveCode(memory, it, newerLocation);
+                break;
+            }
+        }
+        memory[newLocation]=it->second;
+		newLocation++;
+		temp=it->first;
+		it++;
+    }
+    memory.erase(start, it);
+}
+
 //takes input from the user in case no input file is provided
 void input(map<int, string> &memory)
 {
-    int PC;
+    int PC, newLocation;
     string input;
+    string choice;
     cout<<"Starting address: ";
     cin>>hex>>PC;
     cout<<'\n';
     getchar();
     while(1)
     {
-        map<string, int> commands= {{"MVI", 2}, {"ADI", 2}, {"SUI", 2}, {"LXI", 3}, {"JMP", 3}, {"JC", 3},
-            {"JNC", 3}, {"JZ", 3}, {"JNZ", 3}, {"LDA", 3}, {"STA", 3}, {"LHLD", 3}, {"SHLD", 3}
-        };
+        if(memory.find(PC)!=memory.end())
+        {
+            map<int, string>::iterator it=memory.find(PC);
+            cout<<"Memory already in use\n"
+                "Do you want to overwrite it or move the block of code present to another address?: ";
+            cin>>choice;
+            getchar();
+            switch(choice[0])
+            {
+            case 'm':
+                cout<<"New location for the code block: ";
+                cin>>hex>>newLocation;
+                getchar();
+                moveCode(memory, it, newLocation);
+                break;
+            }
+        }
         cout<<hex<<PC<<" ";
         getline(cin, input);
         if(cin.ios::eof())
@@ -436,6 +483,10 @@ int main(int argc, char **argv)
         cin>>choice;
         switch(choice)
         {
+        case 'A':
+            input(memory);
+            cin.clear();
+            break;
         case 'R':
             cin>>reg;
             cout<<reg<<": "<<registers[reg].val<<" - ";

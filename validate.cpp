@@ -10,7 +10,8 @@ using namespace std;
 bool validateAndUpdateProgramCounter(map<int, string>::iterator &PC)
 {
     map<string, int> commands= {
-        {"MVI", 2}, {"ADI", 2}, {"SUI", 2}, {"LXI", 3}, {"LDA", 3},
+        {"MVI", 2}, {"ADI", 2}, {"SUI", 2}, {"LXI", 3}, {"JMP", 3},
+        {"JC", 3}, {"JNC", 3}, {"JZ", 3}, {"JNZ", 3}, {"LDA", 3},
         {"STA", 3}, {"LHLD", 3}, {"SHLD", 3}, {"SET", 4}
     };
     auto search = commands.find(parseCommand(PC->second));
