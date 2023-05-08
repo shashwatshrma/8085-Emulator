@@ -365,6 +365,14 @@ void moveCode(map<int, string> &memory, map<int, string>::iterator it, int newLo
                 moveCode(memory, it, newerLocation);
                 break;
             default:
+                int temp2=newLocation-1;
+                map<int, string>::iterator itTemp=memory.find(temp);
+                while(it->first == temp2+1)
+                {
+                    it++;
+                    temp2++;
+                }
+                memory.erase(memory.find(newLocation), itTemp);
                 overwrite=true;
             }
         }
