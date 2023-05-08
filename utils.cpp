@@ -65,6 +65,15 @@ string itos(int num)
     stringstream tempStream;
     tempStream<<hex<<num;
     return tempStream.str();
+}//converts number to hex string
+
+int stohex(string s)
+{
+    stringstream tempStream;
+    tempStream<<s;
+    int hexNum;
+    tempStream>>hex>>hexNum;
+    return hexNum;
 }
 
 //parses command from the input

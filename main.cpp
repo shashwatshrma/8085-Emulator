@@ -16,7 +16,6 @@
 using namespace std;
 
 void execute(map<int, string> &memory, map<string, register_8bit> &registers, string command, map<int, string>::iterator &PC, bool &jumped);
-string parseCommand(string input);
 
 //used when executing the 8085 program
 void updateProgramCounter(map<int, string>::iterator &PC, bool &jumped)
@@ -346,10 +345,11 @@ void moveCode(map<int, string> &memory, map<int, string>::iterator it, int newLo
 {
     int temp=it->first-1, newerLocation;
     string choice;
+    bool overwrite=false;
     map<int, string>::iterator start=it;
     while(it->first==temp+1)
     {
-        if(memory.find(newLocation)!=memory.end())
+        if(!overwrite && memory.find(newLocation)!=memory.end())
         {
             map<int, string>::iterator it=memory.find(newLocation);
             cout<<"Memory already in use\n"
@@ -364,6 +364,8 @@ void moveCode(map<int, string> &memory, map<int, string>::iterator it, int newLo
                 getchar();
                 moveCode(memory, it, newerLocation);
                 break;
+            default:
+                overwrite=true;
             }
         }
         memory[newLocation]=it->second;
@@ -380,13 +382,14 @@ void input(map<int, string> &memory)
     int PC, newLocation;
     string input;
     string choice;
+    bool overwrite=false;
     cout<<"Starting address: ";
     cin>>hex>>PC;
     cout<<'\n';
     getchar();
     while(1)
     {
-        if(memory.find(PC)!=memory.end())
+        if(!overwrite && memory.find(PC)!=memory.end())
         {
             map<int, string>::iterator it=memory.find(PC);
             cout<<"Memory already in use\n"
@@ -401,13 +404,23 @@ void input(map<int, string> &memory)
                 getchar();
                 moveCode(memory, it, newLocation);
                 break;
+            default:
+                int temp=PC-1;
+                map<int, string>::iterator it=memory.find(temp);
+                while(it->first == temp+1)
+                {
+                    it++;
+                    temp++;
+                }
+                memory.erase(memory.find(PC), it);
+                overwrite=true;
             }
         }
         cout<<hex<<PC<<" ";
         getline(cin, input);
         if(cin.ios::eof())
             break;
-        memory.insert({PC, input});
+        memory[PC]=input;
         updateProgramCounter(memory, PC, input);
     }
 }
