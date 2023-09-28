@@ -1,4 +1,4 @@
-# 8085-Emulator
+# 8085-Simulator
 ## Features
 1. The simulator is able to take input from a file or on the command line.
 2. It contains a debugger.
